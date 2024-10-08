@@ -50,10 +50,10 @@ SUCCESS="${GREEN}✓${NC}"
 FAILURE="${RED}✗${NC}"
 
 if [ -z $KUADRANT_ORG ]; then
-  KUADRANT_ORG=${KUADRANT_ORG:="kuadrant"}
+  KUADRANT_ORG=${KUADRANT_ORG:="R-Lawton"}
 fi
 if [ -z $KUADRANT_REF ]; then
-  KUADRANT_REF=${KUADRANT_REF:="main"}
+  KUADRANT_REF=${KUADRANT_REF:="script"}
 fi
 if [ -z $MGC_REF ]; then
   MGC_REF=${MGC_REF:="main"}
@@ -393,47 +393,47 @@ kubectl create namespace ${KUADRANT_NAMESPACE}
 success "Kubernetes namespaces created successfully."
 
 # Install gateway api
-info "Installing Gateway API... 🌉"
-kubectl apply -k ${KUADRANT_GATEWAY_API_KUSTOMIZATION}
-success "Gateway API installed successfully."
+# info "Installing Gateway API... 🌉"
+# kubectl apply -k ${KUADRANT_GATEWAY_API_KUSTOMIZATION}
+# success "Gateway API installed successfully."
 
 # Install istio
-info "Installing Istio as a Gateway API provider... 🛫"
-if [ "$ISTIO_INSTALL_SAIL" = true ]; then
-  info "Installing Istio via Sail"
-  kubectl apply -k ${KUADRANT_ISTIO_KUSTOMIZATION}
-  kubectl -n istio-system wait --for=condition=Available deployment istio-operator --timeout=300s
-  kubectl apply -f ${KUADRANT_REPO_RAW}/config/dependencies/istio/sail/istio.yaml
-else
-  # Create CRD first to prevent race condition with creating CR
-  info "Generating Istio configuration... 🛠️"
-  kubectl kustomize ${MGC_ISTIO_KUSTOMIZATION} >${TMP_DIR}/doctmp
-  success "Istio configuration generated."
-  ${YQ_BIN} 'select(.kind == "CustomResourceDefinition")' ${TMP_DIR}/doctmp | kubectl apply -f -
-  kubectl -n istio-system wait --for=condition=established crd/istiooperators.install.istio.io --timeout=60s
-  cat ${TMP_DIR}/doctmp | kubectl apply -f -
-  kubectl -n istio-operator wait --for=condition=Available deployment istio-operator --timeout=300s
-fi
-success "Istio installed successfully."
+# info "Installing Istio as a Gateway API provider... 🛫"
+# if [ "$ISTIO_INSTALL_SAIL" = true ]; then
+#   info "Installing Istio via Sail"
+#   kubectl apply -k ${KUADRANT_ISTIO_KUSTOMIZATION}
+#   kubectl -n istio-system wait --for=condition=Available deployment istio-operator --timeout=300s
+#   kubectl apply -f ${KUADRANT_REPO_RAW}/config/dependencies/istio/sail/istio.yaml
+# else
+#   # Create CRD first to prevent race condition with creating CR
+#   info "Generating Istio configuration... 🛠️"
+#   kubectl kustomize ${MGC_ISTIO_KUSTOMIZATION} >${TMP_DIR}/doctmp
+#   success "Istio configuration generated."
+#   ${YQ_BIN} 'select(.kind == "CustomResourceDefinition")' ${TMP_DIR}/doctmp | kubectl apply -f -
+#   kubectl -n istio-system wait --for=condition=established crd/istiooperators.install.istio.io --timeout=60s
+#   cat ${TMP_DIR}/doctmp | kubectl apply -f -
+#   kubectl -n istio-operator wait --for=condition=Available deployment istio-operator --timeout=300s
+# fi
+# success "Istio installed successfully."
 
-# Install cert-manager
-info "Installing cert-manager... 🛡️"
-kubectl apply -k ${KUADRANT_CERT_MANAGER_KUSTOMIZATION}
-info "Waiting for cert-manager deployments to be ready"
-kubectl -n cert-manager wait --for=condition=Available deployments --all --timeout=300s
-setupClusterIssuer
-success "cert-manager installed successfully."
+# # Install cert-manager
+# info "Installing cert-manager... 🛡️"
+# kubectl apply -k ${KUADRANT_CERT_MANAGER_KUSTOMIZATION}
+# info "Waiting for cert-manager deployments to be ready"
+# kubectl -n cert-manager wait --for=condition=Available deployments --all --timeout=300s
+# setupClusterIssuer
+# success "cert-manager installed successfully."
 
 # Install metallb
-info "Installing MetalLB... 🏗️"
-{
-  kubectl apply -k ${KUADRANT_METALLB_KUSTOMIZATION} 2>&1
-} | grep -v "Warning: .* deprecated" || true
-kubectl -n metallb-system wait --for=condition=Available deployments controller --timeout=300s
-kubectl -n metallb-system wait --for=condition=ready pod --selector=app=metallb --timeout=60s
-info "Generating IP address pool for MetalLB..."
-generate_ip_address_pool "kind" "${YQ_BIN}" "${SUBNET_OFFSET}" | kubectl apply -n metallb-system -f -
-success "MetalLB installed and IP address pool generated successfully."
+# info "Installing MetalLB... 🏗️"
+# {
+#   kubectl apply -k ${KUADRANT_METALLB_KUSTOMIZATION} 2>&1
+# } | grep -v "Warning: .* deprecated" || true
+# kubectl -n metallb-system wait --for=condition=Available deployments controller --timeout=300s
+# kubectl -n metallb-system wait --for=condition=ready pod --selector=app=metallb --timeout=60s
+# info "Generating IP address pool for MetalLB..."
+# generate_ip_address_pool "kind" "${YQ_BIN}" "${SUBNET_OFFSET}" | kubectl apply -n metallb-system -f -
+# success "MetalLB installed and IP address pool generated successfully."
 
 # Install kuadrant
 info "Installing Kuadrant in ${KUADRANT_CLUSTER_NAME}..."
@@ -461,9 +461,15 @@ fi
 # Install observability stack
 info "Installing observability stack in ${KUADRANT_CLUSTER_NAME}..."
 kubectl kustomize ${KUADARNT_OBSERVABILITY_KUSTOMIZATION} | $CONTAINER_RUNTIME_BIN run --rm -i docker.io/ryane/kfilt -i kind=CustomResourceDefinition | kubectl apply --server-side -f -
+info "WWWWWWWWWWWWWW I GET HERE"
 kubectl kustomize ${KUADARNT_OBSERVABILITY_KUSTOMIZATION} | $CONTAINER_RUNTIME_BIN run --rm -i docker.io/ryane/kfilt -x kind=CustomResourceDefinition | kubectl apply -f -
+info "WWWWWWWWWWWWWW I GET HERE1"
 kubectl kustomize ${KUADRANT_DASHBOARDS_KUSTOMIZATION} | kubectl apply --server-side -f -
+info "WWWWWWWWWWWWWW I GET HERE2"
+
 kubectl kustomize ${KUADRANT_ALERTS_KUSTOMIZATION} | kubectl apply --server-side -f -
+info "WWWWWWWWWWWWWW I GET HERE3"
+
 success "observability stack installed successfully."
 
 # Patch prometheus to remote write metrics to thanos in hub

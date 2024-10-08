@@ -5,7 +5,7 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-    - gateway-system
+    - kuadrant-system
   selector:
     matchLabels:
       app: istiod
